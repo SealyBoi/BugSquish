@@ -7,7 +7,12 @@ const GameState = {
   GameOver: "GameOver"
 };
 
-let game = { score: 0, maxScore: 0, maxTime: 30, elapsedTime: 0, totalSprites: 7, state: GameState.Start};
+let squish = new Tone.Player('sounds/ow.mp3');
+let miss = new Tone.Player('sounds/osrs.mp3');
+let loss = new Tone.Player('sounds/oof.mp3');
+let win = new Tone.Player('sounds/creeper.mp3');
+
+let game = { score: 0, maxScore: 0, maxTime: 10, elapsedTime: 0, totalSprites: 7, state: GameState.Start};
 
 function preload() {
   spriteSheet = loadImage("images/Ant.png");
@@ -16,6 +21,11 @@ function preload() {
 function setup() {
   createCanvas(400, 400);
   imageMode(CENTER);
+
+  squish.toDestination();
+  miss.toDestination();
+  loss.toDestination();
+  win.toDestination();
 
   reset();
 }
@@ -26,9 +36,10 @@ function reset() {
   game.totalSprites = random(10,15);
 
   animations = [];
-  let move = 1;
+  let move;
   for(let i = 0; i < game.totalSprites; i++) {
-    animations[i] = new AntAnimation(spriteSheet,60,60,random(100,300),random(100,300),5,move,-move);
+    move = random(1,5);
+    animations[i] = new AntAnimation(spriteSheet,60,60,random(100,300),random(100,300),5,move,-move/move);
     move = -move;
   }
 }
@@ -49,6 +60,13 @@ function draw() {
 
       if (currentTime < 0) {
         game.state = GameState.GameOver;
+        loss.start();
+        Tone.Transport.stop();
+      }
+      if (game.score > 10) {
+        game.state = GameState.GameOver;
+        win.start();
+        Tone.Transport.stop();
       }
       break;
     case GameState.GameOver:
@@ -70,19 +88,7 @@ function draw() {
       textAlign(CENTER);
       text("Bug Squish",200,200);
       textSize(30);
-      text("Press Any Key to Start",200,300);
-      break;
-  }
-}
-
-function keyPressed() {
-  switch(game.state) {
-    case GameState.Start:
-      game.state = GameState.Playing;
-      break;
-    case GameState.GameOver:
-      reset();
-      game.state = GameState.Playing;
+      text("Click Mouse to Start",200,300);
       break;
   }
 }
@@ -95,10 +101,22 @@ function mousePressed() {
         if (contains) {
           if (animations[i].moving != 0) {
             animations[i].stop();
+            squish.start();
             game.score += 1;
           }
+        } else {
+          miss.start();
         }
       }
+      break;
+    case GameState.Start:
+      Tone.Transport.start();
+      game.state = GameState.Playing;
+      break;
+    case GameState.GameOver:
+      reset();
+      Tone.Transport.start();
+      game.state = GameState.Playing;
       break;
   }
 }
